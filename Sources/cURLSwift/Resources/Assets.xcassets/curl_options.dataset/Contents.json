@@ -1,0 +1,12 @@
+{
+  "data" : [
+    {
+      "filename" : "curl_options.json",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
