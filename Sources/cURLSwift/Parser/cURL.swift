@@ -9,6 +9,11 @@ import Foundation
 
 public struct cURL {
     
+    fileprivate enum  AppendResult {
+        case finished
+        case `continue`
+    }
+    
     /// 所有的请求参数
     public fileprivate(set) var options: [Option] = []
     /// 参数字典，用于合并相同类型的参数，key为curl参数对应的uuid
@@ -24,35 +29,22 @@ public struct cURL {
         
         /// 遍历所有的token，并解析成curl option
         var index: Int = 1
+        
         while index < tokens.count {
             let token = tokens[index].trimming
             
-            if token.hasPrefix("-") {
-                var (command, body) = token.divide()
+            let res = try append(token: tokens[index]) {
+                index += 1
                 
-                let optionKey = try OptionKey.from(command)
-                let unit = try Options.shared.unit(of: optionKey)
-                
-                if unit.hasArg && body == nil {
-                    index += 1
-                    
-                    guard index < tokens.count else {
-                        throw cURLError.indexOverFlow(index: index)
-                    }
-                    
-                    body = tokens[index]
+                guard index < tokens.count else {
+                    throw cURLError.indexOverFlow(index: index)
                 }
                 
-                let option = try OptionFactory.shared.makeOption(with: optionKey, unit: unit, arg: body)
-                self.options.append(option)
-                
-                let identifier = option.unit.identifier
-                var alikeOptions = self.optionMap[identifier] ?? []
-                alikeOptions.append(option)
-                self.optionMap[identifier] = alikeOptions
-            } else {
-                if token.uppercased() == "CURL" { return }
-                self.url = token
+                return tokens[index]
+            }
+            
+            if res == .finished {
+                return
             }
             
             index += 1
@@ -60,6 +52,34 @@ public struct cURL {
     }
     
     fileprivate init() { }
+    
+    fileprivate mutating func append(token: String, getNext: (() throws -> String)) throws -> AppendResult {
+        let token = token.trimming
+        
+        if token.hasPrefix("-") {
+            var (command, body) = token.divide()
+            
+            let optionKey = try OptionKey.from(command)
+            let unit = try Options.shared.unit(of: optionKey)
+            
+            if unit.hasArg && body == nil {
+                body = try getNext()
+            }
+            
+            let option = try OptionFactory.shared.makeOption(with: optionKey, unit: unit, arg: body)
+            self.options.append(option)
+            
+            let identifier = option.unit.identifier
+            var alikeOptions = self.optionMap[identifier] ?? []
+            alikeOptions.append(option)
+            self.optionMap[identifier] = alikeOptions
+        } else {
+            if token.uppercased() == "CURL" { return .finished }
+            self.url = token
+        }
+        
+        return .continue
+    }
     
     public var description: String {
         var result = "curl "
@@ -105,39 +125,20 @@ public struct cURLs {
         var index: Int = 1
         
         while index < tokens.count {
-            let token = tokens[index]
             
-            if token.uppercased() == "CURL" {
-                curlObjs.append(curlObj)
-                curlObj = cURL()
-                continue
-            }
-            
-            if token.hasPrefix("-") {
-                var (command, body) = token.divide()
+            let res = try curlObj.append(token: tokens[index], getNext: {
+                index += 1
                 
-                let optionKey = try OptionKey.from(command)
-                let unit = try Options.shared.unit(of: optionKey)
-                
-                if unit.hasArg && body == nil {
-                    index += 1
-                    
-                    guard index < tokens.count else {
-                        throw cURLError.indexOverFlow(index: index)
-                    }
-                    
-                    body = tokens[index]
+                guard index < tokens.count else {
+                    throw cURLError.indexOverFlow(index: index)
                 }
                 
-                let option = try OptionFactory.shared.makeOption(with: optionKey, unit: unit, arg: body)
-                curlObj.options.append(option)
-                
-                let identifier = option.unit.identifier
-                var alikeOptions = curlObj.optionMap[identifier] ?? []
-                alikeOptions.append(option)
-                curlObj.optionMap[identifier] = alikeOptions
-            } else {
-                curlObj.url = token
+                return tokens[index]
+            })
+            
+            if res == .finished {
+                curlObjs.append(curlObj)
+                curlObj = cURL()
             }
             
             index += 1

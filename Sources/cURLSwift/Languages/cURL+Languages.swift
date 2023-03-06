@@ -22,3 +22,9 @@ public extension cURL {
         }
     }
 }
+
+public extension cURLs {
+    func code(of language: cURL.Language) -> String {
+        return curlObjs.compactMap({ $0.code(of: language) }).joined(separator: "\n\n\n")
+    }
+}
