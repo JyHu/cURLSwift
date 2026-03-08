@@ -28,7 +28,8 @@ public struct Options {
     private var keyMap: [OptionKey: OptionUUID] = [:]
     
     /// 单例对象
-    public private(set) static var shared = Options()
+    private static var _shared = Options()
+    public static var shared: Options { _shared }
     
     private init() {
         guard let data = NSDataAsset(name: "curl_options", bundle: Bundle.module)?.data,

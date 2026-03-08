@@ -73,4 +73,19 @@ final class cURLSwiftTests: XCTestCase {
     func testMakeSource() {
         Parser.parseOptions()
     }
+    
+    func testTTT() {
+        let date = Date()
+        let timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        let timeZone2 = TimeZone(identifier: "Asia/Dili")
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd hh:mm:ss"
+        formatter.timeStyle = .medium
+        formatter.timeZone = timeZone
+        print(formatter.string(from: date))
+        
+        formatter.timeZone = timeZone2
+        print(formatter.string(from: date))
+    }
 }

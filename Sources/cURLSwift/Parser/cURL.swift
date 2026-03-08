@@ -31,9 +31,7 @@ public struct cURL {
         var index: Int = 1
         
         while index < tokens.count {
-            let token = tokens[index].trimming
-            
-            let res = try append(token: tokens[index]) {
+            if try append(token: tokens[index], getNext: {
                 index += 1
                 
                 guard index < tokens.count else {
@@ -41,9 +39,7 @@ public struct cURL {
                 }
                 
                 return tokens[index]
-            }
-            
-            if res == .finished {
+            }) == .finished {
                 return
             }
             
